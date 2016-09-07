@@ -14,9 +14,64 @@
    <string>SimpleJsonViewer</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
+   <layout class="QGridLayout" name="gridLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <item row="0" column="0">
      <widget class="QTreeView" name="tvJSON">
+      <property name="palette">
+       <palette>
+        <active>
+         <colorrole role="Base">
+          <brush brushstyle="SolidPattern">
+           <color alpha="255">
+            <red>173</red>
+            <green>223</green>
+            <blue>209</blue>
+           </color>
+          </brush>
+         </colorrole>
+        </active>
+        <inactive>
+         <colorrole role="Base">
+          <brush brushstyle="SolidPattern">
+           <color alpha="255">
+            <red>173</red>
+            <green>223</green>
+            <blue>209</blue>
+           </color>
+          </brush>
+         </colorrole>
+        </inactive>
+        <disabled>
+         <colorrole role="Base">
+          <brush brushstyle="SolidPattern">
+           <color alpha="255">
+            <red>240</red>
+            <green>240</green>
+            <blue>240</blue>
+           </color>
+          </brush>
+         </colorrole>
+        </disabled>
+       </palette>
+      </property>
+      <property name="lineWidth">
+       <number>0</number>
+      </property>
       <property name="editTriggers">
        <set>QAbstractItemView::NoEditTriggers</set>
       </property>
@@ -41,9 +96,18 @@
      <string>File</string>
     </property>
     <addaction name="actionOpen"/>
+    <addaction name="actionOpenLast"/>
     <addaction name="actionExit"/>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionExpandTree"/>
+    <addaction name="actionCollapseTree"/>
+   </widget>
    <addaction name="menuOpen_file"/>
+   <addaction name="menuView"/>
   </widget>
   <action name="actionOpen">
    <property name="text">
@@ -82,10 +146,32 @@
     <enum>QAction::QuitRole</enum>
    </property>
   </action>
+  <action name="actionExpandTree">
+   <property name="text">
+    <string>&amp;Expand tree</string>
+   </property>
+   <property name="statusTip">
+    <string>Expand tree</string>
+   </property>
+  </action>
+  <action name="actionCollapseTree">
+   <property name="text">
+    <string>&amp;Collapse tree</string>
+   </property>
+   <property name="statusTip">
+    <string>Collapse tree</string>
+   </property>
+  </action>
+  <action name="actionOpenLast">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Open last</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources>
-  <include location="SimpleJsonViewer.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

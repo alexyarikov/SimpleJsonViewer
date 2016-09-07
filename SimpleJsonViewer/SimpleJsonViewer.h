@@ -13,7 +13,12 @@ public:
 
 private:
     Ui::SimpleJsonViewerClass _ui;
-    QPointer<JsonItemModel> _JsonItemModel;
+    QPointer<JsonItemModel> _jsonItemModel;
+    QString _lastFileName;
 
-    void open();
+    void openNew();
+    void openLast();
+    void open(const QString& fileName);
+    void loadLastFileName();
+    void saveLastFileName();
 };

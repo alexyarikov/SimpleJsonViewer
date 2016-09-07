@@ -6,24 +6,37 @@ SimpleJsonViewer::SimpleJsonViewer(QWidget *parent) : QMainWindow(parent)
 {
     _ui.setupUi(this);
     _ui.actionOpen->setShortcuts(QKeySequence::Open);
-    _ui.actionOpen->setStatusTip(tr("Open file..."));
-    QObject::connect(_ui.actionOpen, &QAction::triggered, this, &SimpleJsonViewer::open);
-    QObject::connect(_ui.actionExit, &QAction::triggered, this, &QApplication::quit);
 
-    _JsonItemModel = new JsonItemModel(this);
-    _ui.tvJSON->setModel(_JsonItemModel);
+    QObject::connect(_ui.actionOpen, &QAction::triggered, this, &SimpleJsonViewer::openNew);
+    QObject::connect(_ui.actionOpenLast, &QAction::triggered, this, &SimpleJsonViewer::openLast);
+    QObject::connect(_ui.actionExit, &QAction::triggered, this, &QApplication::quit);
+    QObject::connect(_ui.actionExpandTree, &QAction::triggered, _ui.tvJSON, &QTreeView::expandAll);
+    QObject::connect(_ui.actionCollapseTree, &QAction::triggered, _ui.tvJSON, &QTreeView::collapseAll);
+
+    _jsonItemModel = new JsonItemModel(this);
+    _ui.tvJSON->setModel(_jsonItemModel);
+
+    loadLastFileName();
 }
 
 SimpleJsonViewer::~SimpleJsonViewer()
 {
 }
 
-void SimpleJsonViewer::open()
+void SimpleJsonViewer::openNew()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open JSON file"), QString(), tr("JSON Files (*.*)"));
-    if (fileName.isNull())
-        return;
+    QString fileName = QFileDialog::getOpenFileName(this, "Open JSON file", QString(), "JSON Files (*.*)");
+    if (!fileName.isNull())
+        open(fileName);
+}
 
+void SimpleJsonViewer::openLast()
+{
+    open(_lastFileName);
+}
+
+void SimpleJsonViewer::open(const QString& fileName)
+{
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly))
     {
@@ -32,6 +45,29 @@ void SimpleJsonViewer::open()
     }
 
     QString error;
-    if (!_JsonItemModel->loadData(file.readAll(), error))
+    if (_jsonItemModel->loadData(file.readAll(), error))
+    {
+        _lastFileName = fileName;
+        saveLastFileName();
+        _ui.actionOpenLast->setEnabled(true);
+    }
+    else
         QMessageBox::critical(this, "Error", "Failed to load json data: " + error);
+}
+
+void SimpleJsonViewer::loadLastFileName()
+{
+    QFile file(qApp->applicationDirPath() + "\\last");
+    if (file.open(QIODevice::ReadOnly))
+    {
+        _lastFileName = file.readLine();
+        _ui.actionOpenLast->setEnabled(!_lastFileName.isEmpty());
+    }
+}
+
+void SimpleJsonViewer::saveLastFileName()
+{
+    QFile file(qApp->applicationDirPath() + "\\last");
+    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        file.write(_lastFileName.toLatin1());
 }

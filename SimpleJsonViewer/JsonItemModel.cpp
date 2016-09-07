@@ -31,11 +31,9 @@ QModelIndex JsonItemModel::index(int row, int column, const QModelIndex &parent)
     if (!hasIndex(row, column, parent))
         return QModelIndex();
 
-    TreeItem* parentItem;
-    if (!parent.isValid())
-        parentItem = _rootItem.data();
-    else
-        parentItem = static_cast<TreeItem*>(parent.internalPointer());
+    TreeItem *parentItem = getParentItem(parent);
+    if (!parentItem)
+        return QModelIndex();
 
     QSharedPointer<TreeItem> childItem = parentItem->child(row);
     if (!childItem.isNull())
@@ -58,14 +56,18 @@ QModelIndex JsonItemModel::parent(const QModelIndex &index) const
     return createIndex(parentItem->row(), 0, parentItem);
 }
 
+bool JsonItemModel::hasChildren(const QModelIndex &parent/* = QModelIndex()*/) const
+{
+    TreeItem *parentItem = getParentItem(parent);
+    if (parentItem)
+        return parentItem->childCount() > 0;
+    else
+        return false;
+}
+
 int JsonItemModel::rowCount(const QModelIndex &parent) const
 {
-    TreeItem *parentItem;
-    if (!parent.isValid())
-        parentItem = _rootItem.data();
-    else
-        parentItem = static_cast<TreeItem*>(parent.internalPointer());
-
+    TreeItem *parentItem = getParentItem(parent);
     if (parentItem)
         return parentItem->childCount();
     else
@@ -84,8 +86,17 @@ QVariant JsonItemModel::data(const QModelIndex &index, int role) const
     return item->data();
 }
 
+// get parent item
+TreeItem* JsonItemModel::getParentItem(const QModelIndex &parent) const
+{
+    if (!parent.isValid())
+        return _rootItem.data();
+    else
+        return static_cast<TreeItem*>(parent.internalPointer());
+}
+
 // load json data into model
-void JsonItemModel::loadJsonDocument(QJsonDocument& jsonDoc)
+void JsonItemModel::loadJsonDocument(const QJsonDocument& jsonDoc)
 {
     beginResetModel();
 
@@ -99,20 +110,25 @@ void JsonItemModel::loadJsonDocument(QJsonDocument& jsonDoc)
     endResetModel();
 }
 
-void JsonItemModel::loadJsonArray(QJsonArray &jsonArray, QSharedPointer<TreeItem> parentItem)
+void JsonItemModel::loadJsonArray(const QJsonArray &jsonArray, QSharedPointer<TreeItem> parentItem)
 {
-    for (QJsonValue jsonValue : jsonArray)
+    for (int i = 0; i < jsonArray.size(); ++i)
     {
+        const QJsonValue jsonValue = jsonArray.at(i);
+
+        auto item = QSharedPointer<TreeItem>(new TreeItem(QString("[%1]").arg(i), parentItem));
+        parentItem->appendChild(item);
+
         if (jsonValue.isArray())
-            loadJsonArray(jsonValue.toArray(), parentItem);
+            loadJsonArray(jsonValue.toArray(), item);
         else if (jsonValue.isObject())
-            loadJsonObject(jsonValue.toObject(), parentItem);
+            loadJsonObject(jsonValue.toObject(), item);
         else
-            loadJsonValue(jsonValue, parentItem);
+            loadJsonValue(jsonValue, item);
     }
 }
 
-void JsonItemModel::loadJsonObject(QJsonObject &jsonObject, QSharedPointer<TreeItem> parentItem)
+void JsonItemModel::loadJsonObject(const QJsonObject &jsonObject, QSharedPointer<TreeItem> parentItem)
 {
     for (const QString& key : jsonObject.keys())
     {
@@ -129,7 +145,7 @@ void JsonItemModel::loadJsonObject(QJsonObject &jsonObject, QSharedPointer<TreeI
     }
 }
 
-void JsonItemModel::loadJsonValue(QJsonValue &jsonValue, QSharedPointer<TreeItem> parentItem)
+void JsonItemModel::loadJsonValue(const QJsonValue &jsonValue, QSharedPointer<TreeItem> parentItem)
 {
     auto item = QSharedPointer<TreeItem>(new TreeItem(jsonValue.toVariant(), parentItem));
     parentItem->appendChild(item);
