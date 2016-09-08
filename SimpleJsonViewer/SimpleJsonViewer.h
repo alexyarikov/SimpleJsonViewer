@@ -25,6 +25,8 @@ private:
     void loadLastFileName();
     void saveLastFileName();
     void jsonContextMenu(const QPoint& point);
-    void expandJsonItem();
-    void collapseJsonItem();
+    void expandJsonItems();
+    void expandJsonItem(QModelIndex& index);
+    void collapseJsonItems();
+    void collapseJsonItem(QModelIndex& index);
 };

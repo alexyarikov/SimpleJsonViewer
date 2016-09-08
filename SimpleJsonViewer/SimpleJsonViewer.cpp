@@ -31,8 +31,8 @@ void SimpleJsonViewer::setupJsonTreeView()
 {
     // setup context menu
     _jsonMenu = new QMenu(_ui.tvJSON);
-    _jsonMenu->addAction("Expand item", this, &SimpleJsonViewer::expandJsonItem);
-    _jsonMenu->addAction("Collapse item", this, &SimpleJsonViewer::collapseJsonItem);
+    _jsonMenu->addAction("Expand item", this, &SimpleJsonViewer::expandJsonItems);
+    _jsonMenu->addAction("Collapse item", this, &SimpleJsonViewer::collapseJsonItems);
 
     _ui.tvJSON->setContextMenuPolicy(Qt::CustomContextMenu);
     QObject::connect(_ui.tvJSON, &QWidget::customContextMenuRequested, this, &SimpleJsonViewer::jsonContextMenu);
@@ -100,14 +100,38 @@ void SimpleJsonViewer::jsonContextMenu(const QPoint& point)
     }
 }
 
-void SimpleJsonViewer::expandJsonItem()
+void SimpleJsonViewer::expandJsonItems()
 {
     if (_jsonMenuIndex)
-        _ui.tvJSON->expand(*_jsonMenuIndex);
+    {
+        qApp->setOverrideCursor(Qt::WaitCursor);
+        expandJsonItem(*_jsonMenuIndex);
+        qApp->restoreOverrideCursor();
+    }
 }
 
-void SimpleJsonViewer::collapseJsonItem()
+void SimpleJsonViewer::expandJsonItem(QModelIndex& index)
+{
+    int childCount = index.model()->rowCount(index);
+    for (int i = 0; i < childCount; ++i)
+        expandJsonItem(index.child(i, 0));
+    _ui.tvJSON->expand(index);
+}
+
+void SimpleJsonViewer::collapseJsonItems()
 {
     if (_jsonMenuIndex)
-        _ui.tvJSON->collapse(*_jsonMenuIndex);
+    {
+        qApp->setOverrideCursor(Qt::WaitCursor);
+        collapseJsonItem(*_jsonMenuIndex);
+        qApp->restoreOverrideCursor();
+    }
+}
+
+void SimpleJsonViewer::collapseJsonItem(QModelIndex& index)
+{
+    int childCount = index.model()->rowCount(index);
+    for (int i = 0; i < childCount; ++i)
+        collapseJsonItem(index.child(i, 0));
+    _ui.tvJSON->collapse(index);
 }
