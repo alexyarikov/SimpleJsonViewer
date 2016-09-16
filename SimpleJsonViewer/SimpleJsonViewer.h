@@ -24,7 +24,6 @@ private:
     void openFromClipboard();
     bool open(const QString& fileName);
     bool open(const QByteArray& jsonData);
-    void formatJson();
     void jsonContextMenu(const QPoint& point);
     void expandJsonItems();
     void expandJsonItem(QModelIndex& index);

@@ -12,7 +12,6 @@ SimpleJsonViewer::SimpleJsonViewer(QWidget *parent) : QMainWindow(parent)
     QObject::connect(_ui.actionOpen, &QAction::triggered, this, &SimpleJsonViewer::openNew);
     QObject::connect(_ui.actionOpenLast, &QAction::triggered, this, &SimpleJsonViewer::openLast);
     QObject::connect(_ui.actionOpenFromClipboard, &QAction::triggered, this, &SimpleJsonViewer::openFromClipboard);
-    QObject::connect(_ui.actionFormat, &QAction::triggered, this, &SimpleJsonViewer::formatJson);
     QObject::connect(_ui.actionExit, &QAction::triggered, this, &QApplication::quit);
 
     // create model
@@ -86,22 +85,18 @@ bool SimpleJsonViewer::open(const QString& fileName)
 
 bool SimpleJsonViewer::open(const QByteArray& jsonData)
 {
-    _ui.teJson->setPlainText(QString(jsonData));
-    _ui.actionFormat->setEnabled(true);
-
     QString error;
     if (_jsonItemModel->loadData(jsonData, error))
+    {
+        _ui.teJson->setPlainText(_jsonItemModel->rawData(QJsonDocument::Indented));
+        _ui.actionFormat->setEnabled(true);
         return true;
+    }
     else
     {
         QMessageBox::critical(this, "Error", "Failed to load json data: " + error);
         return false;
     }
-}
-
-void SimpleJsonViewer::formatJson()
-{
-    _ui.teJson->setPlainText(_jsonItemModel->rawData(QJsonDocument::Indented));
 }
 
 void SimpleJsonViewer::jsonContextMenu(const QPoint& point)
