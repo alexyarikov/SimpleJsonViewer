@@ -100,6 +100,8 @@
     </property>
     <addaction name="actionOpen"/>
     <addaction name="actionOpenLast"/>
+    <addaction name="actionOpenFromClipboard"/>
+    <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
    <addaction name="menuFile"/>
@@ -118,7 +120,7 @@
     <string>Open file...</string>
    </property>
    <property name="shortcut">
-    <string/>
+    <string>Ctrl+O</string>
    </property>
   </action>
   <action name="actionExit">
@@ -163,6 +165,17 @@
    </property>
    <property name="text">
     <string>Open last</string>
+   </property>
+  </action>
+  <action name="actionOpenFromClipboard">
+   <property name="text">
+    <string>Open from clipboard</string>
+   </property>
+   <property name="statusTip">
+    <string>Open from clipboard</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+V</string>
    </property>
   </action>
  </widget>

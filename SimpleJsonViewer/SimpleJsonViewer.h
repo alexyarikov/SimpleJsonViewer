@@ -21,7 +21,9 @@ private:
     void setupJsonTreeView();
     void openNew();
     void openLast();
-    void open(const QString& fileName);
+    void openFromClipboard();
+    bool open(const QString& fileName);
+    bool open(const QByteArray& jsonData);
     void loadLastFileName();
     void saveLastFileName();
     void jsonContextMenu(const QPoint& point);

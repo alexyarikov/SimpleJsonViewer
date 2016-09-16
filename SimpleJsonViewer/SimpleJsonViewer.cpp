@@ -11,6 +11,7 @@ SimpleJsonViewer::SimpleJsonViewer(QWidget *parent) : QMainWindow(parent)
     // setup connections
     QObject::connect(_ui.actionOpen, &QAction::triggered, this, &SimpleJsonViewer::openNew);
     QObject::connect(_ui.actionOpenLast, &QAction::triggered, this, &SimpleJsonViewer::openLast);
+    QObject::connect(_ui.actionOpenFromClipboard, &QAction::triggered, this, &SimpleJsonViewer::openFromClipboard);
     QObject::connect(_ui.actionExit, &QAction::triggered, this, &QApplication::quit);
 
     // create model
@@ -44,8 +45,12 @@ void SimpleJsonViewer::setupJsonTreeView()
 void SimpleJsonViewer::openNew()
 {
     QString fileName = QFileDialog::getOpenFileName(this, "Open JSON file", QString(), "JSON Files (*.*)");
-    if (!fileName.isNull())
-        open(fileName);
+    if (!fileName.isNull() && open(fileName))
+    {
+        _lastFileName = fileName;
+        saveLastFileName();
+        _ui.actionOpenLast->setEnabled(true);
+    }
 }
 
 void SimpleJsonViewer::openLast()
@@ -53,24 +58,35 @@ void SimpleJsonViewer::openLast()
     open(_lastFileName);
 }
 
-void SimpleJsonViewer::open(const QString& fileName)
+void SimpleJsonViewer::openFromClipboard()
+{
+    QString clipboardText = QApplication::clipboard()->text();
+    if (!clipboardText.isEmpty())
+        open(clipboardText.toLatin1());
+}
+
+bool SimpleJsonViewer::open(const QString& fileName)
 {
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly))
     {
-        QMessageBox::critical(this, "Error", "Failed to open json file");
-        return;
+        QMessageBox::critical(this, "Error", QString("Failed to open json file at path %1").arg(fileName));
+        return false;
     }
 
+    return open(file.readAll());
+}
+
+bool SimpleJsonViewer::open(const QByteArray& jsonData)
+{
     QString error;
-    if (_jsonItemModel->loadData(file.readAll(), error))
-    {
-        _lastFileName = fileName;
-        saveLastFileName();
-        _ui.actionOpenLast->setEnabled(true);
-    }
+    if (_jsonItemModel->loadData(jsonData, error))
+        return true;
     else
+    {
         QMessageBox::critical(this, "Error", "Failed to load json data: " + error);
+        return false;
+    }
 }
 
 void SimpleJsonViewer::loadLastFileName()
