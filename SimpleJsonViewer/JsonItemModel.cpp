@@ -13,10 +13,10 @@ JsonItemModel::~JsonItemModel()
 bool JsonItemModel::loadData(const QByteArray &jsonData, QString &error)
 {
     QJsonParseError jsonError;
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &jsonError);
+    _jsonDoc = QJsonDocument::fromJson(jsonData, &jsonError);
     if (jsonError.error == QJsonParseError::NoError)
     {
-        loadJsonDocument(jsonDoc);
+        loadJsonDocument();
         return true;
     }
     else
@@ -96,16 +96,16 @@ TreeItem* JsonItemModel::getParentItem(const QModelIndex &parent) const
 }
 
 // load json data into model
-void JsonItemModel::loadJsonDocument(const QJsonDocument& jsonDoc)
+void JsonItemModel::loadJsonDocument()
 {
     beginResetModel();
 
     _rootItem = QSharedPointer<TreeItem>(new TreeItem(""));
 
-    if (jsonDoc.isArray())
-        loadJsonArray(jsonDoc.array(), _rootItem);
-    else if (jsonDoc.isObject())
-        loadJsonObject(jsonDoc.object(), _rootItem);
+    if (_jsonDoc.isArray())
+        loadJsonArray(_jsonDoc.array(), _rootItem);
+    else if (_jsonDoc.isObject())
+        loadJsonObject(_jsonDoc.object(), _rootItem);
 
     endResetModel();
 }

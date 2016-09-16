@@ -12,50 +12,57 @@ SimpleJsonViewer::SimpleJsonViewer(QWidget *parent) : QMainWindow(parent)
     QObject::connect(_ui.actionOpen, &QAction::triggered, this, &SimpleJsonViewer::openNew);
     QObject::connect(_ui.actionOpenLast, &QAction::triggered, this, &SimpleJsonViewer::openLast);
     QObject::connect(_ui.actionOpenFromClipboard, &QAction::triggered, this, &SimpleJsonViewer::openFromClipboard);
+    QObject::connect(_ui.actionFormat, &QAction::triggered, this, &SimpleJsonViewer::formatJson);
     QObject::connect(_ui.actionExit, &QAction::triggered, this, &QApplication::quit);
 
     // create model
     _jsonItemModel = new JsonItemModel(this);
 
-    // setup json treeview context menu
+    // setup json treeview
     setupJsonTreeView();
 
-    // load last open file name from text file
-    loadLastFileName();
+    // enable/disable OpenLastFile action
+    _ui.actionOpenLast->setEnabled(!lastFileName().isEmpty());
 }
 
 SimpleJsonViewer::~SimpleJsonViewer()
 {
 }
 
+QString SimpleJsonViewer::lastFileName() const
+{
+    QSettings settings;
+    return settings.value("LastFileName", "").toString();
+}
+
 void SimpleJsonViewer::setupJsonTreeView()
 {
     // setup context menu
-    _jsonMenu = new QMenu(_ui.tvJSON);
+    _jsonMenu = new QMenu(_ui.tvJson);
     _jsonMenu->addAction("Expand item", this, &SimpleJsonViewer::expandJsonItems);
     _jsonMenu->addAction("Collapse item", this, &SimpleJsonViewer::collapseJsonItems);
 
-    _ui.tvJSON->setContextMenuPolicy(Qt::CustomContextMenu);
-    QObject::connect(_ui.tvJSON, &QWidget::customContextMenuRequested, this, &SimpleJsonViewer::jsonContextMenu);
+    _ui.tvJson->setContextMenuPolicy(Qt::CustomContextMenu);
+    QObject::connect(_ui.tvJson, &QWidget::customContextMenuRequested, this, &SimpleJsonViewer::jsonContextMenu);
 
     // set view model
-    _ui.tvJSON->setModel(_jsonItemModel);
+    _ui.tvJson->setModel(_jsonItemModel);
 }
 
 void SimpleJsonViewer::openNew()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, "Open JSON file", QString(), "JSON Files (*.*)");
+    QString fileName = QFileDialog::getOpenFileName(this, "Open json file", QString(), "Json Files (*.*)");
     if (!fileName.isNull() && open(fileName))
     {
-        _lastFileName = fileName;
-        saveLastFileName();
+        QSettings settings;
+        settings.setValue("LastFileName", fileName);
         _ui.actionOpenLast->setEnabled(true);
     }
 }
 
 void SimpleJsonViewer::openLast()
 {
-    open(_lastFileName);
+    open(lastFileName());
 }
 
 void SimpleJsonViewer::openFromClipboard()
@@ -79,6 +86,9 @@ bool SimpleJsonViewer::open(const QString& fileName)
 
 bool SimpleJsonViewer::open(const QByteArray& jsonData)
 {
+    _ui.teJson->setPlainText(QString(jsonData));
+    _ui.actionFormat->setEnabled(true);
+
     QString error;
     if (_jsonItemModel->loadData(jsonData, error))
         return true;
@@ -89,30 +99,18 @@ bool SimpleJsonViewer::open(const QByteArray& jsonData)
     }
 }
 
-void SimpleJsonViewer::loadLastFileName()
+void SimpleJsonViewer::formatJson()
 {
-    QFile file(qApp->applicationDirPath() + "\\last");
-    if (file.open(QIODevice::ReadOnly))
-    {
-        _lastFileName = file.readLine();
-        _ui.actionOpenLast->setEnabled(!_lastFileName.isEmpty());
-    }
-}
-
-void SimpleJsonViewer::saveLastFileName()
-{
-    QFile file(qApp->applicationDirPath() + "\\last");
-    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
-        file.write(_lastFileName.toLatin1());
+    _ui.teJson->setPlainText(_jsonItemModel->rawData(QJsonDocument::Indented));
 }
 
 void SimpleJsonViewer::jsonContextMenu(const QPoint& point)
 {
-    QModelIndex index = _ui.tvJSON->indexAt(point);
+    QModelIndex index = _ui.tvJson->indexAt(point);
     if (index.isValid())
     {
         _jsonMenuIndex = &index;
-        _jsonMenu->exec(_ui.tvJSON->mapToGlobal(point));
+        _jsonMenu->exec(_ui.tvJson->mapToGlobal(point));
     }
 }
 
@@ -131,7 +129,7 @@ void SimpleJsonViewer::expandJsonItem(QModelIndex& index)
     int childCount = index.model()->rowCount(index);
     for (int i = 0; i < childCount; ++i)
         expandJsonItem(index.child(i, 0));
-    _ui.tvJSON->expand(index);
+    _ui.tvJson->expand(index);
 }
 
 void SimpleJsonViewer::collapseJsonItems()
@@ -149,5 +147,5 @@ void SimpleJsonViewer::collapseJsonItem(QModelIndex& index)
     int childCount = index.model()->rowCount(index);
     for (int i = 0; i < childCount; ++i)
         collapseJsonItem(index.child(i, 0));
-    _ui.tvJSON->collapse(index);
+    _ui.tvJson->collapse(index);
 }

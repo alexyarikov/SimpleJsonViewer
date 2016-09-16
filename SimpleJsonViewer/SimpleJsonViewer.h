@@ -16,16 +16,15 @@ private:
     QPointer<JsonItemModel> _jsonItemModel;
     QPointer<QMenu> _jsonMenu;
     QModelIndex* _jsonMenuIndex = Q_NULLPTR;
-    QString _lastFileName;
 
+    QString lastFileName() const;
     void setupJsonTreeView();
     void openNew();
     void openLast();
     void openFromClipboard();
     bool open(const QString& fileName);
     bool open(const QByteArray& jsonData);
-    void loadLastFileName();
-    void saveLastFileName();
+    void formatJson();
     void jsonContextMenu(const QPoint& point);
     void expandJsonItems();
     void expandJsonItem(QModelIndex& index);
