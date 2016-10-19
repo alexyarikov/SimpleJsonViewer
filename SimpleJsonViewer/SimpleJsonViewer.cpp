@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "SimpleJsonViewer.h"
 #include "JsonItemModel.h"
+#include "Preferences.h"
+#include "PreferencesDialog.h"
 
 SimpleJsonViewer::SimpleJsonViewer(QWidget *parent) : QMainWindow(parent)
 {
@@ -9,10 +11,12 @@ SimpleJsonViewer::SimpleJsonViewer(QWidget *parent) : QMainWindow(parent)
     _ui.actionOpen->setShortcuts(QKeySequence::Open);
 
     // setup connections
-    QObject::connect(_ui.actionOpen, &QAction::triggered, this, &SimpleJsonViewer::openNew);
-    QObject::connect(_ui.actionOpenLast, &QAction::triggered, this, &SimpleJsonViewer::openLast);
-    QObject::connect(_ui.actionOpenFromClipboard, &QAction::triggered, this, &SimpleJsonViewer::openFromClipboard);
+    QObject::connect(_ui.actionOpen, &QAction::triggered, this, &SimpleJsonViewer::onOpenNew);
+    QObject::connect(_ui.actionOpenLast, &QAction::triggered, this, &SimpleJsonViewer::onOpenLast);
+    QObject::connect(_ui.actionOpenFromClipboard, &QAction::triggered, this, &SimpleJsonViewer::onOpenFromClipboard);
     QObject::connect(_ui.actionExit, &QAction::triggered, this, &QApplication::quit);
+    QObject::connect(_ui.actionPreferences, &QAction::triggered, this, [this](){ PreferencesDialog dlg(this); dlg.exec(); });
+    QObject::connect(&Preferences::getInstance(), &Preferences::showRawJsonChanged, [this](bool value){ _ui.tabWidget->setTabEnabled(1, value); });
 
     // create model
     _jsonItemModel = new JsonItemModel(this);
@@ -22,6 +26,9 @@ SimpleJsonViewer::SimpleJsonViewer(QWidget *parent) : QMainWindow(parent)
 
     // enable/disable OpenLastFile action
     _ui.actionOpenLast->setEnabled(!lastFileName().isEmpty());
+
+    // enable/disable raw data tab
+    _ui.tabWidget->setTabEnabled(1, Preferences::getInstance().showRawJson());
 }
 
 SimpleJsonViewer::~SimpleJsonViewer()
@@ -38,17 +45,17 @@ void SimpleJsonViewer::setupJsonTreeView()
 {
     // setup context menu
     _jsonMenu = new QMenu(_ui.tvJson);
-    _jsonMenu->addAction("Expand item", this, &SimpleJsonViewer::expandJsonItems);
-    _jsonMenu->addAction("Collapse item", this, &SimpleJsonViewer::collapseJsonItems);
+    _jsonMenu->addAction("Expand item", this, &SimpleJsonViewer::onExpandJsonItems);
+    _jsonMenu->addAction("Collapse item", this, &SimpleJsonViewer::onCollapseJsonItems);
 
     _ui.tvJson->setContextMenuPolicy(Qt::CustomContextMenu);
-    QObject::connect(_ui.tvJson, &QWidget::customContextMenuRequested, this, &SimpleJsonViewer::jsonContextMenu);
+    QObject::connect(_ui.tvJson, &QWidget::customContextMenuRequested, this, &SimpleJsonViewer::onJsonContextMenu);
 
     // set view model
     _ui.tvJson->setModel(_jsonItemModel);
 }
 
-void SimpleJsonViewer::openNew()
+void SimpleJsonViewer::onOpenNew()
 {
     QString fileName = QFileDialog::getOpenFileName(this, "Open json file", QString(), "Json Files (*.*)");
     if (!fileName.isNull() && open(fileName))
@@ -59,16 +66,46 @@ void SimpleJsonViewer::openNew()
     }
 }
 
-void SimpleJsonViewer::openLast()
+void SimpleJsonViewer::onOpenLast()
 {
     open(lastFileName());
 }
 
-void SimpleJsonViewer::openFromClipboard()
+void SimpleJsonViewer::onOpenFromClipboard()
 {
     QString clipboardText = QApplication::clipboard()->text();
     if (!clipboardText.isEmpty())
         open(clipboardText.toLatin1());
+}
+
+void SimpleJsonViewer::onJsonContextMenu(const QPoint& point)
+{
+    QModelIndex index = _ui.tvJson->indexAt(point);
+    if (index.isValid())
+    {
+        _jsonMenuIndex = &index;
+        _jsonMenu->exec(_ui.tvJson->mapToGlobal(point));
+    }
+}
+
+void SimpleJsonViewer::onExpandJsonItems()
+{
+    if (_jsonMenuIndex)
+    {
+        qApp->setOverrideCursor(Qt::WaitCursor);
+        expandJsonItem(*_jsonMenuIndex);
+        qApp->restoreOverrideCursor();
+    }
+}
+
+void SimpleJsonViewer::onCollapseJsonItems()
+{
+    if (_jsonMenuIndex)
+    {
+        qApp->setOverrideCursor(Qt::WaitCursor);
+        collapseJsonItem(*_jsonMenuIndex);
+        qApp->restoreOverrideCursor();
+    }
 }
 
 bool SimpleJsonViewer::open(const QString& fileName)
@@ -88,8 +125,13 @@ bool SimpleJsonViewer::open(const QByteArray& jsonData)
     QString error;
     if (_jsonItemModel->loadData(jsonData, error))
     {
-        _ui.teJson->setPlainText(_jsonItemModel->rawData(QJsonDocument::Indented));
-        _ui.actionFormat->setEnabled(true);
+        if (Preferences::getInstance().showRawJson())
+        {
+            QString rawData = _jsonItemModel->rawData();
+            _ui.teJson->blockSignals(true);
+            _ui.teJson->setPlainText(rawData);
+            _ui.teJson->blockSignals(false);
+        }
         return true;
     }
     else
@@ -99,42 +141,12 @@ bool SimpleJsonViewer::open(const QByteArray& jsonData)
     }
 }
 
-void SimpleJsonViewer::jsonContextMenu(const QPoint& point)
-{
-    QModelIndex index = _ui.tvJson->indexAt(point);
-    if (index.isValid())
-    {
-        _jsonMenuIndex = &index;
-        _jsonMenu->exec(_ui.tvJson->mapToGlobal(point));
-    }
-}
-
-void SimpleJsonViewer::expandJsonItems()
-{
-    if (_jsonMenuIndex)
-    {
-        qApp->setOverrideCursor(Qt::WaitCursor);
-        expandJsonItem(*_jsonMenuIndex);
-        qApp->restoreOverrideCursor();
-    }
-}
-
 void SimpleJsonViewer::expandJsonItem(QModelIndex& index)
 {
     int childCount = index.model()->rowCount(index);
     for (int i = 0; i < childCount; ++i)
         expandJsonItem(index.child(i, 0));
     _ui.tvJson->expand(index);
-}
-
-void SimpleJsonViewer::collapseJsonItems()
-{
-    if (_jsonMenuIndex)
-    {
-        qApp->setOverrideCursor(Qt::WaitCursor);
-        collapseJsonItem(*_jsonMenuIndex);
-        qApp->restoreOverrideCursor();
-    }
 }
 
 void SimpleJsonViewer::collapseJsonItem(QModelIndex& index)

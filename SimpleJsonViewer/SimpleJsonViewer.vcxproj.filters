@@ -28,6 +28,12 @@
       <Extensions>cpp;moc</Extensions>
       <SourceControlFiles>False</SourceControlFiles>
     </Filter>
+    <Filter Include="Header Files\Preferences">
+      <UniqueIdentifier>{67f3ab4a-977f-48e1-9b2d-f240378966e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Preferences">
+      <UniqueIdentifier>{9af27789-0a7b-49ff-8da8-727e785ba4f6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -57,6 +63,21 @@
     <ClCompile Include="SimpleJsonViewer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_PreferencesDialog.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_PreferencesDialog.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="PreferencesDialog.cpp">
+      <Filter>Source Files\Preferences</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_Preferences.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_Preferences.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -66,6 +87,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_SimpleJsonViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneratedFiles\ui_PreferencesDialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -78,6 +102,15 @@
     </CustomBuild>
     <CustomBuild Include="SimpleJsonViewer.ui">
       <Filter>Form Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="PreferencesDialog.h">
+      <Filter>Header Files\Preferences</Filter>
+    </CustomBuild>
+    <CustomBuild Include="PreferencesDialog.ui">
+      <Filter>Form Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Preferences.h">
+      <Filter>Header Files\Preferences</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

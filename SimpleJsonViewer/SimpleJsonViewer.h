@@ -19,14 +19,16 @@ private:
 
     QString lastFileName() const;
     void setupJsonTreeView();
-    void openNew();
-    void openLast();
-    void openFromClipboard();
+
+    void onOpenNew();
+    void onOpenLast();
+    void onOpenFromClipboard();
+    void onJsonContextMenu(const QPoint& point);
+    void onExpandJsonItems();
+    void onCollapseJsonItems();
+
     bool open(const QString& fileName);
     bool open(const QByteArray& jsonData);
-    void jsonContextMenu(const QPoint& point);
-    void expandJsonItems();
     void expandJsonItem(QModelIndex& index);
-    void collapseJsonItems();
     void collapseJsonItem(QModelIndex& index);
 };

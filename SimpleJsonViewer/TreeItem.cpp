@@ -1,9 +1,9 @@
 #include "stdafx.h"
 #include "TreeItem.h"
 
-TreeItem::TreeItem(const QVariant &data, QSharedPointer<TreeItem> parent) :
-    _parent(parent),
-    _data(data)
+TreeItem::TreeItem(const QVariant& data, std::shared_ptr<TreeItem> parent) :
+    _data(data),
+    _parent(parent)
 {
 }
 
@@ -13,12 +13,12 @@ TreeItem::~TreeItem()
 
 int TreeItem::row()
 {
-    QSharedPointer<TreeItem> parent = _parent.toStrongRef();
-    if (!parent.isNull())
+    auto parent = _parent.lock();
+    if (!parent)
     {
-        for (int i = 0; i < parent->_children.size(); ++i)
+        for (size_t i = 0; i < parent->_children.size(); ++i)
         {
-            if (parent->_children[i].data() == this)
+            if (parent->_children[i].get() == this)
                 return i;
         }
         return -1;

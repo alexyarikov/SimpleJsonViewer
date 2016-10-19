@@ -36,7 +36,7 @@
        <enum>QTabWidget::Triangular</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -218,6 +218,7 @@
     <addaction name="actionOpenLast"/>
     <addaction name="actionOpenFromClipboard"/>
     <addaction name="separator"/>
+    <addaction name="actionPreferences"/>
     <addaction name="actionExit"/>
    </widget>
    <addaction name="menuFile"/>
@@ -259,22 +260,6 @@
     <enum>QAction::QuitRole</enum>
    </property>
   </action>
-  <action name="actionExpandTree">
-   <property name="text">
-    <string>&amp;Expand tree</string>
-   </property>
-   <property name="statusTip">
-    <string>Expand tree</string>
-   </property>
-  </action>
-  <action name="actionCollapseTree">
-   <property name="text">
-    <string>&amp;Collapse tree</string>
-   </property>
-   <property name="statusTip">
-    <string>Collapse tree</string>
-   </property>
-  </action>
   <action name="actionOpenLast">
    <property name="enabled">
     <bool>false</bool>
@@ -294,18 +279,15 @@
     <string>Ctrl+V</string>
    </property>
   </action>
-  <action name="actionFormat">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
+  <action name="actionPreferences">
    <property name="text">
-    <string>Format</string>
+    <string>Preferences...</string>
    </property>
-   <property name="statusTip">
-    <string>Format</string>
+   <property name="iconText">
+    <string>Preferences...</string>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+F</string>
+   <property name="toolTip">
+    <string>Preferences...</string>
    </property>
   </action>
  </widget>

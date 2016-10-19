@@ -1,8 +1,9 @@
 #include "stdafx.h"
 #include "JsonItemModel.h"
 #include "TreeItem.h"
+#include "Preferences.h"
 
-JsonItemModel::JsonItemModel(QObject *parent) : QAbstractItemModel(parent)
+JsonItemModel::JsonItemModel(QObject* parent) : QAbstractItemModel(parent)
 {
 }
 
@@ -10,71 +11,71 @@ JsonItemModel::~JsonItemModel()
 {
 }
 
-bool JsonItemModel::loadData(const QByteArray &jsonData, QString &error)
+bool JsonItemModel::loadData(const QByteArray& jsonData, QString& error)
 {
     QJsonParseError jsonError;
-    _jsonDoc = QJsonDocument::fromJson(jsonData, &jsonError);
-    if (jsonError.error == QJsonParseError::NoError)
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &jsonError);
+    if (jsonError.error != QJsonParseError::NoError)
     {
-        loadJsonDocument();
-        return true;
-    }
-    else
-    {
+        _rawData.clear();
         error = jsonError.errorString();
         return false;
     }
+
+    if (Preferences::getInstance().showRawJson())
+        _rawData = jsonDoc.toJson(QJsonDocument::Indented);
+    return loadJsonDocument(jsonDoc);
 }
 
-QModelIndex JsonItemModel::index(int row, int column, const QModelIndex &parent) const
+QModelIndex JsonItemModel::index(int row, int column, const QModelIndex& parent) const
 {
     if (!hasIndex(row, column, parent))
         return QModelIndex();
 
-    TreeItem *parentItem = getParentItem(parent);
+    TreeItem* parentItem = getParentItem(parent);
     if (!parentItem)
         return QModelIndex();
 
-    QSharedPointer<TreeItem> childItem = parentItem->child(row);
-    if (!childItem.isNull())
-        return createIndex(row, column, childItem.data());
+    std::shared_ptr<TreeItem> childItem = parentItem->child(row);
+    if (childItem)
+        return createIndex(row, column, childItem.get());
     else
         return QModelIndex();
 }
 
-QModelIndex JsonItemModel::parent(const QModelIndex &index) const
+QModelIndex JsonItemModel::parent(const QModelIndex& index) const
 {
     if (!index.isValid())
         return QModelIndex();
 
     TreeItem* childItem = static_cast<TreeItem*>(index.internalPointer());
-    TreeItem* parentItem = childItem->parent().data();
+    TreeItem* parentItem = childItem->parent().lock().get();
 
-    if (parentItem == _rootItem)
+    if (parentItem == _rootItem.get())
         return QModelIndex();
 
     return createIndex(parentItem->row(), 0, parentItem);
 }
 
-bool JsonItemModel::hasChildren(const QModelIndex &parent/* = QModelIndex()*/) const
+bool JsonItemModel::hasChildren(const QModelIndex& parent/* = QModelIndex()*/) const
 {
-    TreeItem *parentItem = getParentItem(parent);
+    TreeItem* parentItem = getParentItem(parent);
     if (parentItem)
         return parentItem->childCount() > 0;
     else
         return false;
 }
 
-int JsonItemModel::rowCount(const QModelIndex &parent) const
+int JsonItemModel::rowCount(const QModelIndex& parent) const
 {
-    TreeItem *parentItem = getParentItem(parent);
+    TreeItem* parentItem = getParentItem(parent);
     if (parentItem)
         return parentItem->childCount();
     else
         return 0;
 }
 
-QVariant JsonItemModel::data(const QModelIndex &index, int role) const
+QVariant JsonItemModel::data(const QModelIndex& index, int role) const
 {
     if (!index.isValid())
         return QVariant();
@@ -82,71 +83,100 @@ QVariant JsonItemModel::data(const QModelIndex &index, int role) const
     if (role != Qt::DisplayRole)
         return QVariant();
 
-    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
     return item->data();
 }
 
 // get parent item
-TreeItem* JsonItemModel::getParentItem(const QModelIndex &parent) const
+TreeItem* JsonItemModel::getParentItem(const QModelIndex& parent) const
 {
     if (!parent.isValid())
-        return _rootItem.data();
+        return _rootItem.get();
     else
         return static_cast<TreeItem*>(parent.internalPointer());
 }
 
 // load json data into model
-void JsonItemModel::loadJsonDocument()
+bool JsonItemModel::loadJsonDocument(const QJsonDocument& jsonDoc)
 {
+    bool res = false;
+
     beginResetModel();
 
-    _rootItem = QSharedPointer<TreeItem>(new TreeItem(""));
+    _rootItem = make_shared_nothrow<TreeItem>("");
+    if (!_rootItem)
+        return false;
 
-    if (_jsonDoc.isArray())
-        loadJsonArray(_jsonDoc.array(), _rootItem);
-    else if (_jsonDoc.isObject())
-        loadJsonObject(_jsonDoc.object(), _rootItem);
+    if (jsonDoc.isArray())
+        res = loadJsonArray(jsonDoc.array(), _rootItem);
+    else if (jsonDoc.isObject())
+        res = loadJsonObject(jsonDoc.object(), _rootItem);
 
     endResetModel();
+
+    return res;
 }
 
-void JsonItemModel::loadJsonArray(const QJsonArray &jsonArray, QSharedPointer<TreeItem> parentItem)
+bool JsonItemModel::loadJsonArray(const QJsonArray& jsonArray, std::shared_ptr<TreeItem> parentItem)
 {
-    for (int i = 0; i < jsonArray.size(); ++i)
+    bool res = true;
+
+    for (int i = 0; res && i < jsonArray.size(); ++i)
     {
         const QJsonValue jsonValue = jsonArray.at(i);
 
-        auto item = QSharedPointer<TreeItem>(new TreeItem(QString("[%1]").arg(i), parentItem));
+        auto item = make_shared_nothrow<TreeItem>(QString("[%1]").arg(i), parentItem);
+        if (!item)
+            return false;
+
         parentItem->appendChild(item);
 
         if (jsonValue.isArray())
-            loadJsonArray(jsonValue.toArray(), item);
+            res = loadJsonArray(jsonValue.toArray(), item);
         else if (jsonValue.isObject())
-            loadJsonObject(jsonValue.toObject(), item);
+            res = loadJsonObject(jsonValue.toObject(), item);
         else
-            loadJsonValue(jsonValue, item);
+            res = loadJsonValue(jsonValue, item);
     }
+
+    return res;
 }
 
-void JsonItemModel::loadJsonObject(const QJsonObject &jsonObject, QSharedPointer<TreeItem> parentItem)
+bool JsonItemModel::loadJsonObject(const QJsonObject& jsonObject, std::shared_ptr<TreeItem> parentItem)
 {
-    for (const QString& key : jsonObject.keys())
+    bool res = true;
+
+    auto keys = jsonObject.keys();
+    for (int i = 0; res && i < keys.size(); ++i)
     {
-        auto item = QSharedPointer<TreeItem>(new TreeItem(key, parentItem));
+        const QString& key = keys.at(i);
+
+        auto item = make_shared_nothrow<TreeItem>(key, parentItem);
+        if (!item)
+            return false;
+
         parentItem->appendChild(item);
 
         QJsonValue jsonValue = jsonObject.value(key);
         if (jsonValue.isArray())
-            loadJsonArray(jsonValue.toArray(), item);
+            res = loadJsonArray(jsonValue.toArray(), item);
         else if (jsonValue.isObject())
-            loadJsonObject(jsonValue.toObject(), item);
+            res = loadJsonObject(jsonValue.toObject(), item);
         else
-            loadJsonValue(jsonValue, item);
+            res = loadJsonValue(jsonValue, item);
     }
+
+    return res;
 }
 
-void JsonItemModel::loadJsonValue(const QJsonValue &jsonValue, QSharedPointer<TreeItem> parentItem)
+bool JsonItemModel::loadJsonValue(const QJsonValue& jsonValue, std::shared_ptr<TreeItem> parentItem)
 {
-    auto item = QSharedPointer<TreeItem>(new TreeItem(jsonValue.toVariant(), parentItem));
-    parentItem->appendChild(item);
+    auto item = make_shared_nothrow<TreeItem>(jsonValue.toVariant(), parentItem);
+    if (item)
+    {
+        parentItem->appendChild(item);
+        return true;
+    }
+    else
+        return false;
 }
